@@ -1,0 +1,32 @@
+image: docker:git
+services:
+- docker:dind
+
+before_script:
+  - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+  - git clone https://gitlab.com/gbraad/dockerbase-minimal.git brew --depth 1
+
+
+clone_base:
+  script:
+    - docker pull cgwalters/fedoramin
+    - docker tag cgwalters/fedoramin:latest registry.gitlab.com/gbraad/fedoramin:latest
+    - docker push registry.gitlab.com/gbraad/fedoramin:latest
+  only:
+    - master
+
+build_ci:
+  script:
+    - curl https://ci.centos.org/job/atomic-dockerimage-fedora-24/lastSuccessfulBuild/artifact/fedoramin-24.tar.gz | docker import - registry.gitlab.com/gbraad/fedoramin:ci24
+    - docker push registry.gitlab.com/gbraad/fedoramin:ci24
+  only:
+    - master
+
+build_brew:
+  script:
+    - cd brew
+    - ./build-via-docker-and-yum.sh fedora 24
+    - docker tag cgwalters/fedora-builder:24 registry.gitlab.com/gbraad/fedoramin:brew24
+    - docker push registry.gitlab.com/gbraad/fedoramin:brew24
+  only:
+    - master
